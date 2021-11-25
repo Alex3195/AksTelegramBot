@@ -1,5 +1,6 @@
 package uz.myadmin.akstelegrambot.service;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +16,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import uz.myadmin.akstelegrambot.constant.Status;
 import uz.myadmin.akstelegrambot.model.BotUserModel;
+import uz.myadmin.akstelegrambot.model.TelegramSyncReport;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class UsersSevice {
@@ -33,13 +40,6 @@ public class UsersSevice {
     }
 
     public BotUserModel saveUser(Message message) {
-        JSONObject data = new JSONObject();
-        data.put("chatId", message.getChatId());
-        data.put("contact", message.getContact().getPhoneNumber());
-        data.put("userName", message.getFrom().getUserName());
-        data.put("firstName", message.getFrom().getFirstName());
-        data.put("lastName", message.getFrom().getLastName());
-        data.put("status", Status.PASSIVE);
 
         BotUserModel model = new BotUserModel();
         model.setChatId(message.getChatId());
@@ -59,16 +59,43 @@ public class UsersSevice {
                 .bodyToMono(BotUserModel.class).block();
     }
 
-//    public void save(Message message) {
-//        RestTemplate template = new RestTemplate();
-//        BotUserModel model = new BotUserModel();
-//        model.setChatId(message.getChatId());
-//        model.setContact(message.getContact().getPhoneNumber());
-//        model.setUserName(message.getFrom().getUserName());
-//        model.setFirstName(message.getFrom().getFirstName());
-//        model.setLastName(message.getFrom().getLastName());
-//        model.setStatus(Status.PASSIVE);
-//        template.postForEntity(url, model, BotUserModel.class);
-////        template.getForObject(url, String.class);
-//    }
+    public Long getNumberOfReport(Message message) {
+        BotUserModel model = new BotUserModel();
+        model.setChatId(message.getChatId());
+        model.setUserName(message.getFrom().getUserName());
+        model.setFirstName(message.getFrom().getFirstName());
+        model.setLastName(message.getFrom().getLastName());
+        return this.webClient.post().uri("/get-number-of-reports-not-sync")
+                .accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(model)
+                .retrieve().onStatus(HttpStatus::isError, clientResponse -> {
+                    return Mono.error(new Exception("error"));
+                })
+                .bodyToMono(Long.class).block();
+    }
+
+    public List<TelegramSyncReport> getAllReportByDealerId(Message message) {
+        List<TelegramSyncReport> res = new ArrayList<>();
+        BotUserModel model = new BotUserModel();
+        model.setChatId(message.getChatId());
+        Object[] array = this.webClient.post().uri("/get-all-reports-by-dealer")
+                .accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(model)
+                .retrieve().onStatus(HttpStatus::isError, clientResponse -> {
+                    return Mono.error(new Exception("Error"));
+                }).bodyToMono(Object[].class).block();
+        for (Object data : array) {
+            TelegramSyncReport report = new TelegramSyncReport();
+            Map<String,Object> obj = (LinkedHashMap) data;
+            report.setProductName(obj.get("productName").toString());
+            report.setOldDate(obj.get("oldDate").toString());
+            report.setOldPrice(obj.get("oldPrice").toString());
+            report.setLastDate(obj.get("lastDate").toString());
+            report.setLastPrice(obj.get("lastPrice").toString());
+            res.add(report);
+        }
+        return res;
+    }
 }
