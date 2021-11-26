@@ -29,7 +29,7 @@ public class ContactHandler implements Handler<Message> {
                     .chatId(message.getChatId().toString())
                     .text("you are registered for being active ask for admin")
                     .replyToMessageId(message.getMessageId())
-                    .replyMarkup(Commands.getEmptyKeyboard())
+                    .replyMarkup(Commands.getMenuKeyboard())
                     .build());
         }else {
             telegramService.executeMessage(SendMessage
@@ -37,7 +37,7 @@ public class ContactHandler implements Handler<Message> {
                     .chatId(message.getChatId().toString())
                     .text("you are already registered and activated")
                     .replyToMessageId(message.getMessageId())
-                    .replyMarkup(Commands.getEmptyKeyboard())
+                    .replyMarkup(Commands.getMenuKeyboard())
                     .build());
         }
     }

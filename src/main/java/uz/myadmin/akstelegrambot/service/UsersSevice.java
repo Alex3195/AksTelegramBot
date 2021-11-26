@@ -18,6 +18,7 @@ import uz.myadmin.akstelegrambot.constant.Status;
 import uz.myadmin.akstelegrambot.model.BotUserModel;
 import uz.myadmin.akstelegrambot.model.TelegramSyncReport;
 
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -88,7 +89,7 @@ public class UsersSevice {
                 }).bodyToMono(Object[].class).block();
         for (Object data : array) {
             TelegramSyncReport report = new TelegramSyncReport();
-            Map<String,Object> obj = (LinkedHashMap) data;
+            Map<String, Object> obj = (LinkedHashMap) data;
             report.setProductName(obj.get("productName").toString());
             report.setOldDate(obj.get("oldDate").toString());
             report.setOldPrice(obj.get("oldPrice").toString());
@@ -97,5 +98,20 @@ public class UsersSevice {
             res.add(report);
         }
         return res;
+    }
+
+    public Map getReportRemainingGoods(Message message) {
+        List<TelegramSyncReport> res = new ArrayList<>();
+        BotUserModel model = new BotUserModel();
+        model.setChatId(message.getChatId());
+        Object data = this.webClient.post().uri("/get-report-amount-of-products")
+                .accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(model)
+                .retrieve().onStatus(HttpStatus::isError, clientResponse -> {
+                    return Mono.error(new Exception("Error"));
+                }).bodyToMono(Object.class).block();
+        Map jsonObject = (Map) data;
+        return jsonObject;
     }
 }
